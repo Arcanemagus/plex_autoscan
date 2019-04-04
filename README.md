@@ -112,7 +112,8 @@ _Note: Changes to config file require a restart of the Plex Autoscan service: `s
   "PLEX_EMPTY_TRASH_ZERO_DELETED": false,
   "PLEX_LD_LIBRARY_PATH": "/usr/lib/plexmediaserver",
   "PLEX_LOCAL_URL": "http://localhost:32400",
-  "PLEX_SCANNER": "/usr/lib/plexmediaserver/Plex\\ Media\\ Scanner",
+  "PLEX_PYTHONHOME": "/usr/lib/plexmediaserver/Resources/Python",
+  "PLEX_SCANNER": "/usr/lib/plexmediaserver/Plex Media Scanner",
   "PLEX_SECTION_PATH_MAPPINGS": {
     "1": [
       "/Movies/"
@@ -121,7 +122,7 @@ _Note: Changes to config file require a restart of the Plex Autoscan service: `s
       "/TV/"
     ]
   },
-  "PLEX_SUPPORT_DIR": "/var/lib/plexmediaserver/Library/Application\\ Support",
+  "PLEX_SUPPORT_DIR": "/var/lib/plexmediaserver/Library/Application Support",
   "PLEX_TOKEN": "",
   "PLEX_USER": "plex",
   "PLEX_WAIT_FOR_EXTERNAL_SCANNERS": true,
@@ -238,9 +239,9 @@ _Note: Verify the settings below by running the Plex Section IDs command (see be
 ```json
 "PLEX_LD_LIBRARY_PATH": "/usr/lib/plexmediaserver",
 
-"PLEX_SCANNER": "/usr/lib/plexmediaserver/Plex\\ Media\\ Scanner",
+"PLEX_SCANNER": "/usr/lib/plexmediaserver/Plex Media Scanner",
 
-"PLEX_SUPPORT_DIR": "/var/lib/plexmediaserver/Library/Application\\ Support",
+"PLEX_SUPPORT_DIR": "/var/lib/plexmediaserver/Library/Application Support",
 
 "PLEX_DATABASE_PATH": "/var/lib/plexmediaserver/Library/Application Support/Plex Media Server/Plug-in Support/Databases/com.plexapp.plugins.library.db",
 ```
@@ -253,15 +254,15 @@ _Note: Verify the settings below by running the Plex Section IDs command (see be
 
 `PLEX_SCANNER` - Location of Plex Media Scanner binary.
 
-  - Native Install: `"/usr/lib/plexmediaserver/Plex\\ Media\\ Scanner"`
+  - Native Install: `"/usr/lib/plexmediaserver/Plex Media Scanner"`
 
-  - Docker Install: `"/usr/lib/plexmediaserver/Plex\\ Media\\ Scanner"` (path within the container).
+  - Docker Install: `"/usr/lib/plexmediaserver/Plex Media Scanner"` (path within the container).
 
 `PLEX_SUPPORT_DIR` - Location of Plex "Application Support" path.
 
-  - Native Install: `"/var/lib/plexmediaserver/Library/Application\\ Support"`
+  - Native Install: `"/var/lib/plexmediaserver/Library/Application Support"`
 
-  - Docker Install: `"/var/lib/plexmediaserver/Library/Application\\ Support"` (path within the container).
+  - Docker Install: `"/var/lib/plexmediaserver/Library/Application Support"` (path within the container).
 
 `PLEX_DATABASE_PATH` - Location of Plex library database.
 
@@ -379,6 +380,7 @@ To remedy this, a trash emptying command needs to be sent to Plex to get rid of 
 ```json
 "PLEX_TOKEN": "abcdefghijkl",
 "PLEX_LOCAL_URL": "http://localhost:32400",
+"PLEX_PYTHONHOME": "/usr/lib/plexmediaserver/Resources/Python",
 "PLEX_EMPTY_TRASH": true,
 "PLEX_EMPTY_TRASH_CONTROL_FILES": [
   "/mnt/unionfs/mounted.bin"
@@ -399,6 +401,8 @@ To remedy this, a trash emptying command needs to be sent to Plex to get rid of 
   - Native Install: `"http://localhost:32400"`
 
   - Docker Install: `"http://localhost:32400"` (open port)
+
+`PLEX_PYTHONHOME` - Location where Plex bases their custom Python version.
 
 `PLEX_EMPTY_TRASH` - When set to `true`, empty trash of a section after a scan.
 

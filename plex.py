@@ -38,6 +38,43 @@ def updateSectionMappings(conf):
         logger.exception("Issue encountered when attemping to dynamically update section mappings")
 
 
+def run_scanner(config, args):
+    """Run `Plex Media Scanner` with the specified arguments."""
+    cmd = '%s %s' % (cmd_quote(config['PLEX_SCANNER']), str(args))
+
+    # Enhance the environment on non-Windows hosts
+    if not os.name == 'nt':
+        env = {}
+        env['LD_LIBRARY_PATH'] = config['PLEX_LD_LIBRARY_PATH']
+        if not config['USE_DOCKER']:
+            env['PYTHONHOME'] = config['PLEX_PYTHONHOME']
+            env['PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR'] = \
+                config['PLEX_SUPPORT_DIR']
+
+    if config['USE_DOCKER']:
+        # Enhance the environment using the shell within the container
+        # NOTE: With Docker API version 1.25+ (Docker 1.13+) this would be
+        # better done by passing --env arguments to the Docker command, but we
+        # can't be guaranteed that we are running on a new enough version.
+        envs = ''
+        for k, v in env:
+            envs += 'export %s=%s;' % (k, cmd_quote(v))
+        env = None  # Wipe out the environment to run it with
+        cmd = envs + cmd
+
+        cmd = 'docker exec -u %s -i %s bash -c %s' % (
+            cmd_quote(config['PLEX_USER']),
+            cmd_quote(config['DOCKER_NAME']),
+            cmd_quote(cmd))
+    elif config['USE_SUDO']:
+        cmd = 'sudo --preserve-env -u %s bash -c %s' % (
+            config['PLEX_USER'], cmd_quote(cmd))
+
+    utils.run_command(cmd.encode("utf-8"), env)
+
+    return
+
+
 def scan(config, lock, path, scan_for, section, scan_type, resleep_paths):
     scan_path = ""
 
@@ -106,25 +143,6 @@ def scan(config, lock, path, scan_for, section, scan_type, resleep_paths):
             if config['RCLONE_RC_CACHE_EXPIRE']['ENABLED']:
                 utils.rclone_rc_clear_cache(config, check_path)
 
-    # build plex scanner command
-    if os.name == 'nt':
-        final_cmd = '"%s" --scan --refresh --section %s --directory "%s"' \
-                    % (config['PLEX_SCANNER'], str(section), scan_path)
-    else:
-        cmd = 'export LD_LIBRARY_PATH=' + config['PLEX_LD_LIBRARY_PATH'] + ';'
-        if not config['USE_DOCKER']:
-            cmd += 'export PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR=' + config['PLEX_SUPPORT_DIR'] + ';'
-        cmd += config['PLEX_SCANNER'] + ' --scan --refresh --section ' + str(section) + ' --directory ' + cmd_quote(
-            scan_path)
-
-        if config['USE_DOCKER']:
-            final_cmd = 'docker exec -u %s -i %s bash -c %s' % \
-                        (cmd_quote(config['PLEX_USER']), cmd_quote(config['DOCKER_NAME']), cmd_quote(cmd))
-        elif config['USE_SUDO']:
-            final_cmd = 'sudo -u %s bash -c %s' % (config['PLEX_USER'], cmd_quote(cmd))
-        else:
-            final_cmd = cmd
-
     # invoke plex scanner
     priority = utils.get_priority(config, scan_path)
     logger.debug("Waiting for turn in the scan request backlog with priority: %d", priority)
@@ -163,8 +181,10 @@ def scan(config, lock, path, scan_for, section, scan_type, resleep_paths):
 
         # begin scan
         logger.info("Starting Plex Scanner")
-        logger.debug(final_cmd)
-        utils.run_command(final_cmd.encode("utf-8"))
+        # build plex scanner arguments
+        arguments = '--scan --refresh --section %s --directory %s' % (
+            str(section), cmd_quote(scan_path))
+        run_scanner(config, arguments)
         logger.info("Finished scan!")
 
         # remove item from database if sqlite is enabled
@@ -214,27 +234,11 @@ def scan(config, lock, path, scan_for, section, scan_type, resleep_paths):
 
 
 def show_sections(config):
-    if os.name == 'nt':
-        final_cmd = '""%s" --list"' % config['PLEX_SCANNER']
-    else:
-        cmd = 'export LD_LIBRARY_PATH=' + config['PLEX_LD_LIBRARY_PATH'] + ';'
-        if not config['USE_DOCKER']:
-            cmd += 'export PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR=' + config['PLEX_SUPPORT_DIR'] + ';'
-        cmd += config['PLEX_SCANNER'] + ' --list'
-
-        if config['USE_DOCKER']:
-            final_cmd = 'docker exec -u %s -it %s bash -c %s' % (
-                cmd_quote(config['PLEX_USER']), cmd_quote(config['DOCKER_NAME']), cmd_quote(cmd))
-        elif config['USE_SUDO']:
-            final_cmd = 'sudo -u %s bash -c "%s"' % (config['PLEX_USER'], cmd)
-        else:
-            final_cmd = cmd
     logger.info("Using Plex Scanner")
-    print("\n")
-    print("Plex Sections:")
-    print("==============")
-    logger.debug(final_cmd)
-    os.system(final_cmd)
+    logger.info("\n")
+    logger.info("Plex Sections:")
+    logger.info("==============")
+    run_scanner(config, '--list')
 
 
 def analyze_item(config, scan_path):
@@ -248,29 +252,15 @@ def analyze_item(config, scan_path):
         return
     metadata_item_id = ','.join(str(x) for x in metadata_item_ids)
 
-    # build plex analyze command
-    analyze_type = 'analyze-deeply' if config['PLEX_ANALYZE_TYPE'].lower() == 'deep' else 'analyze'
-    if os.name == 'nt':
-        final_cmd = '"%s" --%s --item %s' % (config['PLEX_SCANNER'], analyze_type, metadata_item_id)
-    else:
-        cmd = 'export LD_LIBRARY_PATH=' + config['PLEX_LD_LIBRARY_PATH'] + ';'
-        if not config['USE_DOCKER']:
-            cmd += 'export PLEX_MEDIA_SERVER_APPLICATION_SUPPORT_DIR=' + config['PLEX_SUPPORT_DIR'] + ';'
-        cmd += config['PLEX_SCANNER'] + ' --' + analyze_type + ' --item ' + metadata_item_id
-
-        if config['USE_DOCKER']:
-            final_cmd = 'docker exec -u %s -i %s bash -c %s' % \
-                        (cmd_quote(config['PLEX_USER']), cmd_quote(config['DOCKER_NAME']), cmd_quote(cmd))
-        elif config['USE_SUDO']:
-            final_cmd = 'sudo -u %s bash -c %s' % (config['PLEX_USER'], cmd_quote(cmd))
-        else:
-            final_cmd = cmd
+    # Determine analyze type
+    analyze_type = 'analyze-deeply' \
+        if config['PLEX_ANALYZE_TYPE'].lower() == 'deep' else 'analyze'
 
     # begin analysis
     logger.info("Starting %s analysis of metadata_item(s): %s",
                 'deep' if config['PLEX_ANALYZE_TYPE'].lower() == 'deep' else 'basic', metadata_item_id)
-    logger.debug(final_cmd)
-    utils.run_command(final_cmd.encode("utf-8"))
+    arguments = '--%s --item %s' % (analyze_type, metadata_item_id)
+    run_scanner(config, arguments)
     logger.info("Finished %s analysis of metadata_item(s): %s!",
                 'deep' if config['PLEX_ANALYZE_TYPE'].lower() == 'deep' else 'basic', metadata_item_id)
 
@@ -389,7 +379,7 @@ def wait_plex_alive(config):
                 if 'MyPlex' in resp_json:
                     plex_user = resp_json['MyPlex']['username'] if 'username' in resp_json['MyPlex'] else 'Unknown'
                     return plex_user
-                
+
             logger.error("Unexpected response when checking if Plex was available for scans (Attempt: %d): status_code = %d - resp_text =\n%s",
                 check_attempts, resp.status_code, resp.text)
         except Exception:

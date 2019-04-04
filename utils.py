@@ -87,8 +87,20 @@ def wait_running_process(process_name):
         return False
 
 
-def run_command(command):
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+def run_command(command, env=None):
+    logger.debug('Running command: %s', command)
+
+    if env:
+        logger.debug('Command environment: %s', env)
+        process = subprocess.Popen(
+            command, shell=True, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT, env=env)
+    else:
+        # Let subprocess inherit the current environment instead of a blank one
+        process = subprocess.Popen(
+            command, shell=True, stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT)
+
     while True:
         output = str(process.stdout.readline()).lstrip('b').replace('\\n', '').strip()
         if process.poll() is not None:
