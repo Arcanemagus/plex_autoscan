@@ -43,7 +43,7 @@ def run_scanner(config, args):
     cmd = '%s %s' % (cmd_quote(config['PLEX_SCANNER']), str(args))
 
     # Enhance the environment on non-Windows hosts
-    if not os.name == 'nt':
+    if config['USE_DOCKER'] or not os.name == 'nt':
         env = {}
         env['LD_LIBRARY_PATH'] = config['PLEX_LD_LIBRARY_PATH']
         if not config['USE_DOCKER']:
