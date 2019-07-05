@@ -90,16 +90,19 @@ def wait_running_process(process_name):
 def run_command(command, env=None):
     logger.debug('Running command: %s', command)
 
-    if env:
-        logger.debug('Command environment: %s', env)
-        process = subprocess.Popen(
-            command, shell=True, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT, env=env)
-    else:
-        # Let subprocess inherit the current environment instead of a blank one
-        process = subprocess.Popen(
-            command, shell=True, stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+    try:
+        if env:
+            logger.debug('Command environment: %s', env)
+            process = subprocess.Popen(
+                command, shell=True, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, env=env)
+        else:
+            # Let subprocess inherit the current environment instead of a blank one
+            process = subprocess.Popen(
+                command, shell=True, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT)
+    except Exception as e:
+        logger.warn('Failed to run program: %s', e)
 
     while True:
         output = str(process.stdout.readline()).lstrip('b').replace('\\n', '').strip()
@@ -109,6 +112,7 @@ def run_command(command, env=None):
             logger.info(output)
 
     rc = process.poll()
+    logger.debug('Return code: %s', rc)
     return rc
 
 
