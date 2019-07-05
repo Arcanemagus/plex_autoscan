@@ -90,29 +90,35 @@ def wait_running_process(process_name):
 def run_command(command, env=None):
     logger.debug('Running command: %s', command)
 
+    if not env:
+        # Let subprocess inherit the current environment instead of a blank one
+        env = os.environ.copy()
+    logger.debug('Command environment: %s', env)
+
     try:
-        if env:
-            logger.debug('Command environment: %s', env)
-            process = subprocess.Popen(
-                command, shell=True, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, env=env)
-        else:
-            # Let subprocess inherit the current environment instead of a blank one
-            process = subprocess.Popen(
-                command, shell=True, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT)
-    except Exception as e:
+        process = subprocess.Popen(
+            command,
+            shell=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env)
+
+        output, error = process.communicate(input=None)
+
+        rc = process.returncode
+        logger.debug('Return code: %s', rc)
+    except OSError as e:
         logger.warn('Failed to run program: %s', e)
+        return -1
 
-    while True:
-        output = str(process.stdout.readline()).lstrip('b').replace('\\n', '').strip()
-        if process.poll() is not None:
-            break
-        if output and len(output) >= 8:
-            logger.info(output)
+    if error:
+        err = '\n  '.join([l for l in error.splitlines()])
+        logger.error(err)
+    if output:
+        out = '\n  '.join([l for l in output.splitlines()])
+        logger.info(out)
 
-    rc = process.poll()
-    logger.debug('Return code: %s', rc)
     return rc
 
 
