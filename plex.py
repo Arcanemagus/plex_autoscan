@@ -34,7 +34,7 @@ def updateSectionMappings(conf):
             for k, v in output.items():
                 conf.configs['PLEX_SECTION_PATH_MAPPINGS'][k] = v
             conf.save(conf.configs)
-    except Exception as e:
+    except Exception:
         logger.exception("Issue encountered when attemping to dynamically update section mappings")
 
 
@@ -329,7 +329,7 @@ def get_file_metadata_ids(config, file_path):
                             # user had PLEX_ANALYZE_DIRECTORY as False - lets just scan the single metadata_item_id
                             results.append(int(metadata_item_id))
 
-    except Exception as ex:
+    except Exception:
         logger.exception("Exception finding metadata_item_id for '%s': ", file_path)
     return results
 
@@ -354,7 +354,7 @@ def empty_trash(config, section):
                 logger.error("Unexpected response status_code for empty trash request: %d, %d/5 attempts...",
                              resp.status_code, x + 1)
                 time.sleep(10)
-        except Exception as ex:
+        except Exception:
             logger.exception("Exception sending empty trash for section %s, %d/5 attempts: ", section, x + 1)
             time.sleep(10)
     return
@@ -380,7 +380,8 @@ def wait_plex_alive(config):
                     plex_user = resp_json['MyPlex']['username'] if 'username' in resp_json['MyPlex'] else 'Unknown'
                     return plex_user
 
-            logger.error("Unexpected response when checking if Plex was available for scans (Attempt: %d): status_code = %d - resp_text =\n%s",
+            logger.error(
+                "Unexpected response when checking if Plex was available for scans (Attempt: %d): status_code = %d - resp_text =\n%s",
                 check_attempts, resp.status_code, resp.text)
         except Exception:
             logger.exception("Exception checking if Plex was available at %s: ", config['PLEX_LOCAL_URL'])
@@ -402,6 +403,6 @@ def get_deleted_count(config):
 
         return int(deleted_metadata) + int(deleted_media_parts)
 
-    except Exception as ex:
+    except Exception:
         logger.exception("Exception retrieving deleted item count from database: ")
     return -1
