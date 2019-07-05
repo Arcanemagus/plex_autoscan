@@ -1,5 +1,6 @@
 # User-specific stuff:
 .idea
+plex_autoscan.pid
 
 ## File-based project format:
 *.iws
