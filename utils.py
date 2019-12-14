@@ -107,18 +107,16 @@ def run_command(command, env=None):
         output, error = process.communicate(input=None)
 
         rc = process.returncode
-        logger.debug('Return code: %s', rc)
     except OSError as e:
         logger.warn('Failed to run program: %s', e)
         return -1
 
     if error:
-        err = '\n  '.join([l for l in error.splitlines()])
-        logger.error(err)
+        [logger.error(l) for l in error.splitlines()] 
     if output:
-        out = '\n  '.join([l for l in output.splitlines()])
-        logger.info(out)
+        [logger.info(l) for l in output.splitlines()]
 
+    logger.debug('Return code: %s', rc)
     return rc
 
 
